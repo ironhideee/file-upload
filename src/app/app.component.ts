@@ -46,13 +46,12 @@ export class AppComponent {
     
   }
 
-  ngOnChanges() {
+  ngDoCheck() {
     if (!this.container.file || !this.data.length) return 0;
     const loaded = this.data
       .map(item => item["size"] * item["percentage"])
       .reduce((acc, cur) => acc + cur);
     let now = parseInt((loaded / this.container.file.size).toFixed(2));
-    console.log("test==="+now)
     if (now > this.fakeUploadPercentage) {
       this.fakeUploadPercentage = now;
     }
@@ -64,7 +63,8 @@ export class AppComponent {
   }
 
   resetData() {
-    //this.requestList.forEach((xhr:any) => xhr?.abort());
+    console.log(this.requestList)
+    this.requestList.forEach(xhr => xhr.unsubscribe());
     this.requestList = [];
     if (this.container.worker) {
       this.container.worker.onmessage = null;
@@ -182,20 +182,20 @@ export class AppComponent {
         }
       },1000)
       return
-      forkJoin(requestList).subscribe(event=>{
-        console.log(event)
-        // event.forEach((item,index) => {
-        //   if(item.type === HttpEventType.UploadProgress){
-        //     this.data["index"].percentage = Math.round(100 * item.loaded / item.total);
-        //   }
-        // });
-        console.log(this.data)
-        // 之前上传的切片数量 + 本次上传的切片数量 = 所有切片数量时
-        // 合并切片
-        if (this.uploadedList.length + requestList.length === this.data.length) {
-          this.mergeRequest();
-        }
-      })
+      // forkJoin(requestList).subscribe(event=>{
+      //   console.log(event)
+      //   event.forEach((item,index) => {
+      //     if(item.type === HttpEventType.UploadProgress){
+      //       this.data["index"].percentage = Math.round(100 * item.loaded / item.total);
+      //     }
+      //   });
+      //   console.log(this.data)
+      //   // 之前上传的切片数量 + 本次上传的切片数量 = 所有切片数量时
+      //   // 合并切片
+      //   if (this.uploadedList.length + requestList.length === this.data.length) {
+      //     this.mergeRequest();
+      //   }
+      // })
   }
 
   // 通知服务端合并切片
