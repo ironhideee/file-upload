@@ -3,7 +3,7 @@ import { NzMessageService } from 'ng-zorro-antd/message';
 import { UploadFile } from 'ng-zorro-antd/upload';
 import { HttpService } from 'src/service/http.service';
 import { forkJoin } from 'rxjs'
-import { HttpClient, HttpRequest } from '@angular/common/http';
+import { HttpClient, HttpEventType, HttpRequest } from '@angular/common/http';
 
 @Component({
   selector: 'app-root',
@@ -26,8 +26,8 @@ export class AppComponent {
     worker: null
   }
   hashPercentage: 0
-  data: []
-  requestList: []
+  data = [];
+  requestList = [];
   status = this.Status.wait
   // 当暂停时会取消 xhr 导致进度条后退
   // 为了避免这种情况，需要定义一个假的进度条
@@ -46,9 +46,8 @@ export class AppComponent {
     
   }
 
-  ngDoCheck() {
-    console.log(this.data)
-    if (!this.container.file || !this.data) return 0;
+  ngOnChanges() {
+    if (!this.container.file || !this.data.length) return 0;
     const loaded = this.data
       .map(item => item["size"] * item["percentage"])
       .reduce((acc, cur) => acc + cur);
@@ -163,15 +162,34 @@ export class AppComponent {
         formData.append("fileHash", this.container.hash);
         return { formData, index };
       })
-      .map(({ formData, index }) =>{
-        return this.httpCall.upload(formData)
+      .map(({ formData,index }) =>{
+        return {index: index,request:this.httpCall.upload(formData)}
+        //return this.httpCall.upload(formData);
         // 两种调用方式都可以
         // const req = new HttpRequest('POST', 'http://localhost:3000', formData);
         // return this.http.request(req)
       });
-      requestList[0].subscribe()
-      // return
-      forkJoin(requestList).subscribe((res)=>{
+      requestList.forEach(item => {
+        item.request.subscribe(event=>{
+          if(event.type === HttpEventType.UploadProgress){
+            this.data[item.index].percentage = Math.round(100 * event.loaded / event.total);
+          }
+        })
+      });
+      setTimeout(()=>{
+        if (this.uploadedList.length + requestList.length === this.data.length) {
+          this.mergeRequest();
+        }
+      },1000)
+      return
+      forkJoin(requestList).subscribe(event=>{
+        console.log(event)
+        // event.forEach((item,index) => {
+        //   if(item.type === HttpEventType.UploadProgress){
+        //     this.data["index"].percentage = Math.round(100 * item.loaded / item.total);
+        //   }
+        // });
+        console.log(this.data)
         // 之前上传的切片数量 + 本次上传的切片数量 = 所有切片数量时
         // 合并切片
         if (this.uploadedList.length + requestList.length === this.data.length) {

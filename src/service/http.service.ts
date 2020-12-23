@@ -16,7 +16,9 @@ export class HttpService {
   }
 
   callhttpfile(url,params){
-    return this.http.post(url, params,{reportProgress: true});
+    return this.http.request(
+      new HttpRequest('post',url, params,{reportProgress: true})
+    );
   }
 
   verify(params){
